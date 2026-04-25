@@ -1,0 +1,6 @@
+{
+  "name": "PoetiCraft v2",
+  "description": "一个帮助学生通过微技能练习提升诗歌文学分析能力的平台，支持 Supabase 教师 OTP、讲义生成习题及人工智能反馈。",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
