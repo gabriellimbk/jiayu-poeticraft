@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, us
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, KeyRound, LockKeyhole, LogOut, Mail, ShieldCheck, X } from "lucide-react";
+import { BookOpen, GraduationCap, KeyRound, LockKeyhole, LogOut, Mail, ShieldCheck, X } from "lucide-react";
 import { isRiTeacherEmail, supabase } from "./lib/supabase";
 import { StudentIdentity } from "./types";
 
@@ -87,7 +87,17 @@ function Header({
   );
 }
 
-function AccessRequired({ onTeacher }: { onTeacher: () => void }) {
+function AccessRequired({
+  studentIdentity,
+  onStudent,
+  onTeacher,
+}: {
+  studentIdentity: StudentIdentity | null;
+  onStudent: () => void;
+  onTeacher: () => void;
+}) {
+  const hasStudentIdentity = Boolean(studentIdentity?.id);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -109,22 +119,44 @@ function AccessRequired({ onTeacher }: { onTeacher: () => void }) {
         </p>
       </div>
 
-      <button
-        onClick={onTeacher}
-        className="group block w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-xl transition-all text-left"
-      >
-        <div className="space-y-6">
-          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all">
-            <ShieldCheck className="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <button
+          onClick={onStudent}
+          disabled={!hasStudentIdentity}
+          className="group p-8 bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-xl transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-slate-200"
+        >
+          <div className="space-y-6">
+            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-600 transition-all group-disabled:group-hover:bg-indigo-50">
+              <GraduationCap className="w-7 h-7 text-indigo-600 group-hover:text-white group-disabled:group-hover:text-indigo-600 transition-colors" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-slate-800">学生</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {hasStudentIdentity
+                  ? `Continue as ${studentIdentity!.name}.`
+                  : "Open from Canvas with ?id=YOUR_LOGIN_ID to enable student access."}
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800">教师</h2>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Teachers can verify access with an @ri.edu.sg email OTP.
-            </p>
+        </button>
+
+        <button
+          onClick={onTeacher}
+          className="group p-8 bg-white rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-xl transition-all text-left"
+        >
+          <div className="space-y-6">
+            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all">
+              <ShieldCheck className="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-slate-800">教师</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Teachers can verify access with an @ri.edu.sg email OTP.
+              </p>
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </div>
     </motion.div>
   );
 }
@@ -282,6 +314,7 @@ function AppShell() {
 
   const isTeacher = isRiTeacherEmail(session?.user.email);
   const hasStudentAccess = role === "student" && Boolean(studentIdentity.id);
+  const currentUrlStudentIdentity = getStudentIdentityFromSearch(location.search);
 
   useEffect(() => {
     const urlIdentity = getStudentIdentityFromSearch(location.search);
@@ -341,6 +374,14 @@ function AppShell() {
     };
   }, []);
 
+  const enterStudent = () => {
+    const urlIdentity = getStudentIdentityFromSearch(location.search);
+    if (!urlIdentity) return;
+    setStudentIdentity(urlIdentity);
+    setRole("student");
+    navigate(`/${location.search}`);
+  };
+
   const enterTeacher = () => {
     setShowTeacherLogin(false);
     setRole("teacher");
@@ -350,12 +391,19 @@ function AppShell() {
   const handleLogout = async () => {
     setRole(null);
     setSession(null);
-    setStudentIdentity(EMPTY_STUDENT_IDENTITY);
+    const urlIdentity = getStudentIdentityFromSearch(location.search);
+    setStudentIdentity(urlIdentity || EMPTY_STUDENT_IDENTITY);
     await supabase.auth.signOut();
-    navigate("/");
+    navigate(`/${location.search}`);
   };
 
-  const accessRequired = <AccessRequired onTeacher={() => setShowTeacherLogin(true)} />;
+  const accessRequired = (
+    <AccessRequired
+      studentIdentity={currentUrlStudentIdentity}
+      onStudent={enterStudent}
+      onTeacher={() => setShowTeacherLogin(true)}
+    />
+  );
 
   if (loading) {
     return (
