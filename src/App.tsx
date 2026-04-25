@@ -110,13 +110,6 @@ function AccessRequired({
           <LockKeyhole className="w-8 h-8 text-slate-400" />
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-800">Access Required</h1>
-        <p className="text-slate-500 font-medium uppercase tracking-widest text-xs">
-          Open this page from Canvas using your LMS link
-        </p>
-        <p className="max-w-xl mx-auto text-sm text-slate-500 leading-relaxed">
-          Student access requires a URL like <span className="font-mono text-slate-700">/?id=YOUR_LOGIN_ID</span>.
-          The value of <span className="font-mono text-slate-700">id</span> will be used as your current name.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,7 +127,7 @@ function AccessRequired({
               <p className="text-sm text-slate-500 leading-relaxed">
                 {hasStudentIdentity
                   ? `Continue as ${studentIdentity!.name}.`
-                  : "Open from Canvas with ?id=YOUR_LOGIN_ID to enable student access."}
+                  : "请使用含有学生ID的链接访问。"}
               </p>
             </div>
           </div>
@@ -451,12 +444,7 @@ function AppShell() {
       </main>
 
       <footer className="py-8 text-center border-t border-slate-200">
-        <div className="max-w-xs mx-auto p-4 bg-slate-100 rounded-xl border border-dashed border-slate-300">
-          <p className="text-[10px] leading-relaxed text-slate-500 font-medium">
-            &copy; 2026 PoetiCraft AI<br />
-            Supabase 同步中
-          </p>
-        </div>
+        <p className="text-[10px] text-slate-400">&copy; 2026 PoetiCraft AI</p>
       </footer>
 
       {showTeacherLogin && <TeacherOtpModal onClose={() => setShowTeacherLogin(false)} onSuccess={enterTeacher} />}
