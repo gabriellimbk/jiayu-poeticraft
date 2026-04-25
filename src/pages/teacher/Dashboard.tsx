@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Upload, Database, Users, TrendingUp } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { APP_TABLE } from "../../lib/db";
 
 export default function TeacherDashboard() {
   const [workCount, setWorkCount] = useState("...");
@@ -11,8 +12,8 @@ export default function TeacherDashboard() {
   useEffect(() => {
     async function fetchStats() {
       const [{ count: works }, { data: submissions }] = await Promise.all([
-        supabase.from("works").select("id", { count: "exact", head: true }),
-        supabase.from("submissions").select("student_id"),
+        supabase.from(APP_TABLE).select("id", { count: "exact", head: true }).eq("record_type", "work"),
+        supabase.from(APP_TABLE).select("student_id").eq("record_type", "submission"),
       ]);
 
       setWorkCount(String(works ?? 0));

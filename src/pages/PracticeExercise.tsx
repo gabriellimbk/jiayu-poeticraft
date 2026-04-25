@@ -6,7 +6,7 @@ import { ArrowLeft, Send, Sparkles, CheckCircle2, AlertCircle } from "lucide-rea
 import { getStudentFeedback } from "../lib/gemini";
 import Markdown from "react-markdown";
 import { supabase } from "../lib/supabase";
-import { ExerciseRow, mapExercise, mapSkill, SkillRow } from "../lib/db";
+import { APP_TABLE, ExerciseRow, mapExercise, mapSkill, SkillRow } from "../lib/db";
 
 export default function PracticeExercise({ studentIdentity }: { studentIdentity: StudentIdentity }) {
   const { workId, skillId, category } = useParams();
@@ -23,8 +23,9 @@ export default function PracticeExercise({ studentIdentity }: { studentIdentity:
       setLoading(true);
       try {
         const { data: skillData, error: skillError } = await supabase
-          .from("skills")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "skill")
           .eq("id", skillId)
           .maybeSingle();
 
@@ -34,8 +35,9 @@ export default function PracticeExercise({ studentIdentity }: { studentIdentity:
         }
 
         const { data: exerciseData, error: exerciseError } = await supabase
-          .from("exercises")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "exercise")
           .eq("skill_id", skillId);
 
         if (exerciseError) throw exerciseError;
@@ -63,7 +65,8 @@ export default function PracticeExercise({ studentIdentity }: { studentIdentity:
       const aiFeedback = await getStudentFeedback(studentContent, exercise.excerpt, skill.rubric);
       setFeedback(aiFeedback);
 
-      const { error } = await supabase.from("submissions").insert({
+      const { error } = await supabase.from(APP_TABLE).insert({
+        record_type: "submission",
         exercise_id: exercise.id,
         student_id: studentIdentity.id,
         student_name: studentIdentity.name,

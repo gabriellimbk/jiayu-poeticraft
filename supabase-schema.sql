@@ -1,4 +1,6 @@
-create extension if not exists pgcrypto;
+-- PoetiCraft AI single-table setup.
+-- Run this in Supabase SQL Editor after creating public."CL_JIAYU_POETICRAFT".
+-- Your table may already have id int8 and created_at timestamptz; this script keeps them.
 
 create or replace function public.is_ri_teacher()
 returns boolean
@@ -9,94 +11,93 @@ as $$
     and right(lower(coalesce(auth.jwt() ->> 'email', '')), 10) = '@ri.edu.sg';
 $$;
 
-create table if not exists public.works (
-  id uuid primary key default gen_random_uuid(),
-  title text not null check (char_length(title) <= 200),
-  author text not null check (char_length(author) <= 100),
-  content text not null check (char_length(content) <= 10000),
-  analysis_text text not null check (char_length(analysis_text) <= 50000),
-  type text not null check (type in ('in-class', 'extra-curricular')),
-  created_at timestamptz not null default now()
-);
+alter table public."CL_JIAYU_POETICRAFT"
+  add column if not exists record_type text,
+  add column if not exists work_id bigint,
+  add column if not exists skill_id bigint,
+  add column if not exists exercise_id bigint,
+  add column if not exists title text,
+  add column if not exists author text,
+  add column if not exists content text,
+  add column if not exists analysis_text text,
+  add column if not exists work_type text,
+  add column if not exists category text,
+  add column if not exists name text,
+  add column if not exists rubric text,
+  add column if not exists excerpt text,
+  add column if not exists reference_analysis text,
+  add column if not exists student_id text,
+  add column if not exists student_name text,
+  add column if not exists student_content text,
+  add column if not exists feedback text;
 
-create table if not exists public.skills (
-  id uuid primary key default gen_random_uuid(),
-  work_id uuid not null references public.works(id) on delete cascade,
-  category text not null check (category in ('思想内容', '艺术特色', '综合鉴赏')),
-  name text not null check (char_length(name) <= 200),
-  rubric text not null check (char_length(rubric) <= 10000),
-  created_at timestamptz not null default now()
-);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cl_jiayu_poeticraft_record_type_check'
+  ) then
+    alter table public."CL_JIAYU_POETICRAFT"
+      add constraint cl_jiayu_poeticraft_record_type_check
+      check (record_type in ('work', 'skill', 'exercise', 'submission'));
+  end if;
 
-create table if not exists public.exercises (
-  id uuid primary key default gen_random_uuid(),
-  work_id uuid not null references public.works(id) on delete cascade,
-  skill_id uuid not null references public.skills(id) on delete cascade,
-  excerpt text not null check (char_length(excerpt) <= 2000),
-  reference_analysis text not null check (char_length(reference_analysis) <= 10000),
-  created_at timestamptz not null default now()
-);
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cl_jiayu_poeticraft_work_type_check'
+  ) then
+    alter table public."CL_JIAYU_POETICRAFT"
+      add constraint cl_jiayu_poeticraft_work_type_check
+      check (work_type is null or work_type in ('in-class', 'extra-curricular'));
+  end if;
 
-create table if not exists public.submissions (
-  id uuid primary key default gen_random_uuid(),
-  exercise_id uuid not null references public.exercises(id) on delete cascade,
-  student_id text not null check (char_length(student_id) <= 128),
-  student_name text not null check (char_length(student_name) <= 200),
-  student_content text not null check (char_length(student_content) <= 5000),
-  feedback text not null check (char_length(feedback) <= 10000),
-  created_at timestamptz not null default now()
-);
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cl_jiayu_poeticraft_category_check'
+  ) then
+    alter table public."CL_JIAYU_POETICRAFT"
+      add constraint cl_jiayu_poeticraft_category_check
+      check (category is null or category in ('思想内容', '艺术特色', '综合鉴赏'));
+  end if;
+end $$;
 
-create index if not exists skills_work_id_created_at_idx on public.skills(work_id, created_at);
-create index if not exists exercises_work_id_idx on public.exercises(work_id);
-create index if not exists exercises_skill_id_idx on public.exercises(skill_id);
-create index if not exists submissions_exercise_id_idx on public.submissions(exercise_id);
-create index if not exists submissions_student_id_idx on public.submissions(student_id);
+create index if not exists cl_jiayu_poeticraft_record_type_created_at_idx
+on public."CL_JIAYU_POETICRAFT"(record_type, created_at);
 
-alter table public.works enable row level security;
-alter table public.skills enable row level security;
-alter table public.exercises enable row level security;
-alter table public.submissions enable row level security;
+create index if not exists cl_jiayu_poeticraft_work_id_idx
+on public."CL_JIAYU_POETICRAFT"(work_id);
 
-drop policy if exists "Public can read works" on public.works;
-create policy "Public can read works"
-on public.works for select
-using (true);
+create index if not exists cl_jiayu_poeticraft_skill_id_idx
+on public."CL_JIAYU_POETICRAFT"(skill_id);
 
-drop policy if exists "RI teachers can manage works" on public.works;
-create policy "RI teachers can manage works"
-on public.works for all
+create index if not exists cl_jiayu_poeticraft_exercise_id_idx
+on public."CL_JIAYU_POETICRAFT"(exercise_id);
+
+create index if not exists cl_jiayu_poeticraft_student_id_idx
+on public."CL_JIAYU_POETICRAFT"(student_id);
+
+alter table public."CL_JIAYU_POETICRAFT" enable row level security;
+
+drop policy if exists "PoetiCraft public read learning content" on public."CL_JIAYU_POETICRAFT";
+create policy "PoetiCraft public read learning content"
+on public."CL_JIAYU_POETICRAFT" for select
+using (record_type in ('work', 'skill', 'exercise') or public.is_ri_teacher());
+
+drop policy if exists "PoetiCraft public create submissions" on public."CL_JIAYU_POETICRAFT";
+create policy "PoetiCraft public create submissions"
+on public."CL_JIAYU_POETICRAFT" for insert
+with check (record_type = 'submission' or public.is_ri_teacher());
+
+drop policy if exists "PoetiCraft RI teachers update rows" on public."CL_JIAYU_POETICRAFT";
+create policy "PoetiCraft RI teachers update rows"
+on public."CL_JIAYU_POETICRAFT" for update
 using (public.is_ri_teacher())
 with check (public.is_ri_teacher());
 
-drop policy if exists "Public can read skills" on public.skills;
-create policy "Public can read skills"
-on public.skills for select
-using (true);
-
-drop policy if exists "RI teachers can manage skills" on public.skills;
-create policy "RI teachers can manage skills"
-on public.skills for all
-using (public.is_ri_teacher())
-with check (public.is_ri_teacher());
-
-drop policy if exists "Public can read exercises" on public.exercises;
-create policy "Public can read exercises"
-on public.exercises for select
-using (true);
-
-drop policy if exists "RI teachers can manage exercises" on public.exercises;
-create policy "RI teachers can manage exercises"
-on public.exercises for all
-using (public.is_ri_teacher())
-with check (public.is_ri_teacher());
-
-drop policy if exists "Anyone can create submissions" on public.submissions;
-create policy "Anyone can create submissions"
-on public.submissions for insert
-with check (true);
-
-drop policy if exists "RI teachers can read submissions" on public.submissions;
-create policy "RI teachers can read submissions"
-on public.submissions for select
+drop policy if exists "PoetiCraft RI teachers delete rows" on public."CL_JIAYU_POETICRAFT";
+create policy "PoetiCraft RI teachers delete rows"
+on public."CL_JIAYU_POETICRAFT" for delete
 using (public.is_ri_teacher());

@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ChevronRight, Heart, Sparkles, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { mapWork, WorkRow } from "../lib/db";
+import { APP_TABLE, mapWork, WorkRow } from "../lib/db";
 
 export default function PracticeCategory() {
   const { workId } = useParams();
@@ -14,8 +14,9 @@ export default function PracticeCategory() {
     async function checkWorkType() {
       if (!workId) return;
       const { data, error } = await supabase
-        .from("works")
+        .from(APP_TABLE)
         .select("*")
+        .eq("record_type", "work")
         .eq("id", workId)
         .maybeSingle();
 

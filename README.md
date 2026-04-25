@@ -5,7 +5,7 @@ PoetiCraft AI is a Vite React app for Chinese poetry analysis practice. It is de
 ## Stack
 
 - Vite + React
-- Supabase Postgres + Row Level Security
+- Supabase Postgres + Row Level Security using one table: `CL_JIAYU_POETICRAFT`
 - Supabase email OTP for teachers with `@ri.edu.sg` email addresses
 - Vercel `/api/gemini` function for Gemini calls
 
@@ -16,9 +16,10 @@ PoetiCraft AI is a Vite React app for Chinese poetry analysis practice. It is de
    npm install
    ```
 
-2. Create the Supabase tables and RLS policies:
+2. Configure the Supabase table and RLS policies:
    - Open the Supabase SQL editor.
    - Run `supabase-schema.sql`.
+   - This script uses your existing `public.CL_JIAYU_POETICRAFT` table and adds the app columns/policies.
 
 3. Configure environment variables:
    ```bash

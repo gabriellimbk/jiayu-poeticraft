@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Wand2, FileText, CheckCircle } from "lucide-react";
 import { generateSkillsAndExercises } from "../../lib/gemini";
 import { supabase } from "../../lib/supabase";
+import { APP_TABLE } from "../../lib/db";
 
 export default function TeacherUpload({ isExtra = false }: { isExtra?: boolean }) {
   const navigate = useNavigate();
@@ -25,13 +26,14 @@ export default function TeacherUpload({ isExtra = false }: { isExtra?: boolean }
     try {
       // 1. Save Work
       const { data: workData, error: workError } = await supabase
-        .from("works")
+        .from(APP_TABLE)
         .insert({
+          record_type: "work",
           title: formData.title,
           author: formData.author,
           content: formData.content,
           analysis_text: formData.analysisText,
-          type: isExtra ? "extra-curricular" : "in-class",
+          work_type: isExtra ? "extra-curricular" : "in-class",
         })
         .select("id")
         .single();
@@ -50,8 +52,9 @@ export default function TeacherUpload({ isExtra = false }: { isExtra?: boolean }
       // 3. Save Skills and Exercises
       for (const skillData of aiResult.skills) {
         const { data: skillRow, error: skillError } = await supabase
-          .from("skills")
+          .from(APP_TABLE)
           .insert({
+            record_type: "skill",
             work_id: workId,
             category: skillData.category,
             name: skillData.name,
@@ -64,6 +67,7 @@ export default function TeacherUpload({ isExtra = false }: { isExtra?: boolean }
 
         if (skillData.exercises && Array.isArray(skillData.exercises)) {
           const exerciseRows = skillData.exercises.map((exData: any) => ({
+            record_type: "exercise",
             work_id: workId,
             skill_id: skillRow.id,
             excerpt: exData.excerpt,
@@ -71,7 +75,7 @@ export default function TeacherUpload({ isExtra = false }: { isExtra?: boolean }
           }));
 
           if (exerciseRows.length > 0) {
-            const { error: exerciseError } = await supabase.from("exercises").insert(exerciseRows);
+            const { error: exerciseError } = await supabase.from(APP_TABLE).insert(exerciseRows);
             if (exerciseError) throw exerciseError;
           }
         }

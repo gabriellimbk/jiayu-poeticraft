@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Edit2, Plus, ChevronRight, Save, X, Book, Target, ArrowLeft, BookOpen, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { ExerciseRow, mapExercise, mapSkill, mapWork, SkillRow, WorkRow } from "../../lib/db";
+import { APP_TABLE, ExerciseRow, mapExercise, mapSkill, mapWork, SkillRow, WorkRow } from "../../lib/db";
 
 export default function TeacherManagement() {
   const navigate = useNavigate();
@@ -35,8 +35,9 @@ export default function TeacherManagement() {
     async function fetchWorks() {
       try {
         const { data, error } = await supabase
-          .from("works")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "work")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -68,8 +69,9 @@ export default function TeacherManagement() {
     async function fetchData() {
       try {
         const { data: skillRows, error: skillError } = await supabase
-          .from("skills")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "skill")
           .eq("work_id", selectedWorkId)
           .order("created_at", { ascending: true });
         if (skillError) throw skillError;
@@ -78,8 +80,9 @@ export default function TeacherManagement() {
         setSkills(sData);
 
         const { data: exerciseRows, error: exerciseError } = await supabase
-          .from("exercises")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "exercise")
           .eq("work_id", selectedWorkId);
         if (exerciseError) throw exerciseError;
 
@@ -100,9 +103,28 @@ export default function TeacherManagement() {
     setActionLoading(`work-${id}`);
     setError(null);
     try {
-      const { error } = await supabase.from("works").delete().eq("id", id);
-      if (error) throw error;
+      const skillIds = skills.filter(skill => skill.workId === id).map(skill => skill.id);
+      const exerciseIds = exercises.filter(exercise => exercise.workId === id).map(exercise => exercise.id);
+
+      if (exerciseIds.length > 0) {
+        const { error } = await supabase.from(APP_TABLE).delete().eq("record_type", "submission").in("exercise_id", exerciseIds);
+        if (error) throw error;
+      }
+
+      if (skillIds.length > 0) {
+        const { error } = await supabase.from(APP_TABLE).delete().eq("record_type", "exercise").in("skill_id", skillIds);
+        if (error) throw error;
+      }
+
+      const { error: skillError } = await supabase.from(APP_TABLE).delete().eq("record_type", "skill").eq("work_id", id);
+      if (skillError) throw skillError;
+
+      const { error: workError } = await supabase.from(APP_TABLE).delete().eq("record_type", "work").eq("id", id);
+      if (workError) throw workError;
+
       setWorks(works.filter(w => w.id !== id));
+      setSkills(prev => prev.filter(s => s.workId !== id));
+      setExercises(prev => prev.filter(e => e.workId !== id));
       if (selectedWorkId === id) {
         const remaining = works.filter(w => w.id !== id);
         setSelectedWorkId(remaining[0]?.id || null);
@@ -119,9 +141,21 @@ export default function TeacherManagement() {
     setActionLoading(`skill-${id}`);
     setError(null);
     try {
-      const { error } = await supabase.from("skills").delete().eq("id", id);
-      if (error) throw error;
+      const exerciseIds = exercises.filter(exercise => exercise.skillId === id).map(exercise => exercise.id);
+
+      if (exerciseIds.length > 0) {
+        const { error } = await supabase.from(APP_TABLE).delete().eq("record_type", "submission").in("exercise_id", exerciseIds);
+        if (error) throw error;
+      }
+
+      const { error: exerciseError } = await supabase.from(APP_TABLE).delete().eq("record_type", "exercise").eq("skill_id", id);
+      if (exerciseError) throw exerciseError;
+
+      const { error: skillError } = await supabase.from(APP_TABLE).delete().eq("record_type", "skill").eq("id", id);
+      if (skillError) throw skillError;
+
       setSkills(skills.filter(s => s.id !== id));
+      setExercises(prev => prev.filter(e => e.skillId !== id));
       if (selectedSkillId === id) setSelectedSkillId(null);
     } catch (err: any) {
       console.error("Delete skill error:", err);
@@ -140,8 +174,9 @@ export default function TeacherManagement() {
     setActionLoading("add-skill");
     try {
       const { data, error } = await supabase
-        .from("skills")
+        .from(APP_TABLE)
         .insert({
+          record_type: "skill",
           work_id: selectedWorkId!,
           category: newSkill.category,
           name: newSkill.name,
@@ -166,7 +201,7 @@ export default function TeacherManagement() {
     setActionLoading(`save-skill-${skill.id}`);
     try {
       const { error } = await supabase
-        .from("skills")
+        .from(APP_TABLE)
         .update({
           category: skill.category,
           name: skill.name,
@@ -192,8 +227,9 @@ export default function TeacherManagement() {
     setActionLoading(`add-ex-${selectedSkillId}`);
     try {
       const { data, error } = await supabase
-        .from("exercises")
+        .from(APP_TABLE)
         .insert({
+          record_type: "exercise",
           work_id: selectedWorkId!,
           skill_id: selectedSkillId!,
           excerpt: newExercise.excerpt,
@@ -218,7 +254,10 @@ export default function TeacherManagement() {
     setActionLoading(`ex-${id}`);
     setError(null);
     try {
-      const { error } = await supabase.from("exercises").delete().eq("id", id);
+      const { error: submissionError } = await supabase.from(APP_TABLE).delete().eq("record_type", "submission").eq("exercise_id", id);
+      if (submissionError) throw submissionError;
+
+      const { error } = await supabase.from(APP_TABLE).delete().eq("record_type", "exercise").eq("id", id);
       if (error) throw error;
       setExercises(prev => prev.filter(e => e.id !== id));
     } catch (err: any) {

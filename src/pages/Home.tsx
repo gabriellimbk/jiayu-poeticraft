@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { ChevronRight, BookOpen, AlertCircle, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { mapWork, WorkRow } from "../lib/db";
+import { APP_TABLE, mapWork, WorkRow } from "../lib/db";
 
 export default function Home() {
   const [works, setWorks] = useState<Work[]>([]);
@@ -16,8 +16,9 @@ export default function Home() {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from("works")
+        .from(APP_TABLE)
         .select("*")
+        .eq("record_type", "work")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

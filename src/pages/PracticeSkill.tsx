@@ -4,7 +4,7 @@ import { Skill } from "../types";
 import { motion } from "motion/react";
 import { ChevronRight, ArrowLeft, Target } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { mapSkill, SkillRow } from "../lib/db";
+import { APP_TABLE, mapSkill, SkillRow } from "../lib/db";
 
 export default function PracticeSkill() {
   const { workId, category } = useParams();
@@ -16,8 +16,9 @@ export default function PracticeSkill() {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("skills")
+          .from(APP_TABLE)
           .select("*")
+          .eq("record_type", "skill")
           .eq("work_id", workId)
           .order("created_at", { ascending: true });
 
