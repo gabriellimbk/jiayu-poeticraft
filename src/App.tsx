@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Navigate, Route, Routes, Link, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, BookOpen, GraduationCap, KeyRound, LogOut, Mail, ShieldCheck, X } from "lucide-react";
+import { BookOpen, KeyRound, LockKeyhole, LogOut, Mail, ShieldCheck, X } from "lucide-react";
 import { isRiTeacherEmail, supabase } from "./lib/supabase";
 import { StudentIdentity } from "./types";
 
@@ -21,10 +21,17 @@ import TeacherManagement from "./pages/teacher/Management";
 
 type AppRole = "student" | "teacher" | null;
 
-function getStudentIdentityFromUrl(): StudentIdentity {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id")?.trim() || "Student";
+const EMPTY_STUDENT_IDENTITY: StudentIdentity = { id: "", name: "" };
+
+function getStudentIdentityFromSearch(search: string): StudentIdentity | null {
+  const params = new URLSearchParams(search);
+  const id = params.get("id")?.trim();
+  if (!id) return null;
   return { id, name: id };
+}
+
+function getStudentIdentityFromUrl(): StudentIdentity | null {
+  return getStudentIdentityFromSearch(window.location.search);
 }
 
 function Header({
@@ -80,13 +87,7 @@ function Header({
   );
 }
 
-function RoleSelect({
-  onStudent,
-  onTeacher,
-}: {
-  onStudent: () => void;
-  onTeacher: () => void;
-}) {
+function AccessRequired({ onTeacher }: { onTeacher: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -95,55 +96,35 @@ function RoleSelect({
       className="max-w-3xl mx-auto space-y-10"
     >
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-800">选择入口</h1>
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+          <LockKeyhole className="w-8 h-8 text-slate-400" />
+        </div>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-800">Access Required</h1>
         <p className="text-slate-500 font-medium uppercase tracking-widest text-xs">
-          Continue as student or verify teacher access
+          Open this page from Canvas using your LMS link
+        </p>
+        <p className="max-w-xl mx-auto text-sm text-slate-500 leading-relaxed">
+          Student access requires a URL like <span className="font-mono text-slate-700">/?id=YOUR_LOGIN_ID</span>.
+          The value of <span className="font-mono text-slate-700">id</span> will be used as your current name.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <button
-          onClick={onStudent}
-          className="group p-8 bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-xl transition-all text-left"
-        >
-          <div className="space-y-6">
-            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-600 transition-all">
-              <GraduationCap className="w-7 h-7 text-indigo-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-slate-800">学生</h2>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                进入作品选择与写作练习界面。
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm">
-              <span>进入学生界面</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+      <button
+        onClick={onTeacher}
+        className="group block w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-xl transition-all text-left"
+      >
+        <div className="space-y-6">
+          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all">
+            <ShieldCheck className="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" />
           </div>
-        </button>
-
-        <button
-          onClick={onTeacher}
-          className="group p-8 bg-white rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-xl transition-all text-left"
-        >
-          <div className="space-y-6">
-            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all">
-              <ShieldCheck className="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-slate-800">教师</h2>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                使用 @ri.edu.sg 邮箱接收 Supabase 六位验证码。
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
-              <span>验证教师身份</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-slate-800">教师</h2>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Teachers can verify access with an @ri.edu.sg email OTP.
+            </p>
           </div>
-        </button>
-      </div>
+        </div>
+      </button>
     </motion.div>
   );
 }
@@ -291,14 +272,24 @@ function TeacherOtpModal({
 }
 
 function AppShell() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole>(null);
-  const [studentIdentity, setStudentIdentity] = useState<StudentIdentity>(() => getStudentIdentityFromUrl());
+  const [studentIdentity, setStudentIdentity] = useState<StudentIdentity>(() => getStudentIdentityFromUrl() || EMPTY_STUDENT_IDENTITY);
   const [loading, setLoading] = useState(true);
   const [showTeacherLogin, setShowTeacherLogin] = useState(false);
 
   const isTeacher = isRiTeacherEmail(session?.user.email);
+  const hasStudentAccess = role === "student" && Boolean(studentIdentity.id);
+
+  useEffect(() => {
+    const urlIdentity = getStudentIdentityFromSearch(location.search);
+    if (urlIdentity && !isTeacher) {
+      setStudentIdentity(urlIdentity);
+      setRole("student");
+    }
+  }, [location.search, isTeacher]);
 
   useEffect(() => {
     let mounted = true;
@@ -306,20 +297,23 @@ function AppShell() {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
 
-      const savedRole = localStorage.getItem("poeticraft-role");
       const nextSession = data.session;
+      const urlIdentity = getStudentIdentityFromUrl();
 
       if (isRiTeacherEmail(nextSession?.user.email)) {
         setSession(nextSession);
         setRole("teacher");
-        localStorage.setItem("poeticraft-role", "teacher");
       } else {
         if (nextSession) {
           await supabase.auth.signOut();
         }
-        if (savedRole === "student") {
-          setStudentIdentity(getStudentIdentityFromUrl());
+
+        if (urlIdentity) {
+          setStudentIdentity(urlIdentity);
           setRole("student");
+        } else {
+          setStudentIdentity(EMPTY_STUDENT_IDENTITY);
+          setRole(null);
         }
       }
 
@@ -332,18 +326,12 @@ function AppShell() {
       if (isRiTeacherEmail(nextSession?.user.email)) {
         setSession(nextSession);
         setRole("teacher");
-        localStorage.setItem("poeticraft-role", "teacher");
         return;
       }
 
       setSession(null);
       if (nextSession) {
         void supabase.auth.signOut();
-      }
-
-      if (localStorage.getItem("poeticraft-role") === "teacher") {
-        localStorage.removeItem("poeticraft-role");
-        setRole(null);
       }
     });
 
@@ -353,30 +341,21 @@ function AppShell() {
     };
   }, []);
 
-  const enterStudent = () => {
-    setStudentIdentity(getStudentIdentityFromUrl());
-    setRole("student");
-    localStorage.setItem("poeticraft-role", "student");
-    navigate("/");
-  };
-
   const enterTeacher = () => {
     setShowTeacherLogin(false);
     setRole("teacher");
-    localStorage.setItem("poeticraft-role", "teacher");
     navigate("/teacher");
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem("poeticraft-role");
     setRole(null);
     setSession(null);
-    setStudentIdentity(getStudentIdentityFromUrl());
+    setStudentIdentity(EMPTY_STUDENT_IDENTITY);
     await supabase.auth.signOut();
     navigate("/");
   };
 
-  const roleSelect = <RoleSelect onStudent={enterStudent} onTeacher={() => setShowTeacherLogin(true)} />;
+  const accessRequired = <AccessRequired onTeacher={() => setShowTeacherLogin(true)} />;
 
   if (loading) {
     return (
@@ -406,19 +385,19 @@ function AppShell() {
           <Routes>
             <Route
               path="/"
-              element={role === "teacher" && isTeacher ? <Navigate to="/teacher" replace /> : role === "student" ? <Home /> : roleSelect}
+              element={role === "teacher" && isTeacher ? <Navigate to="/teacher" replace /> : hasStudentAccess ? <Home /> : accessRequired}
             />
-            <Route path="/practice/:workId" element={role === "student" ? <PracticeCategory /> : roleSelect} />
-            <Route path="/practice/:workId/:category" element={role === "student" ? <PracticeSkill /> : roleSelect} />
+            <Route path="/practice/:workId" element={hasStudentAccess ? <PracticeCategory /> : accessRequired} />
+            <Route path="/practice/:workId/:category" element={hasStudentAccess ? <PracticeSkill /> : accessRequired} />
             <Route
               path="/practice/:workId/:category/:skillId"
-              element={role === "student" ? <PracticeExercise studentIdentity={studentIdentity} /> : roleSelect}
+              element={hasStudentAccess ? <PracticeExercise studentIdentity={studentIdentity} /> : accessRequired}
             />
 
-            <Route path="/teacher" element={isTeacher ? <TeacherDashboard /> : roleSelect} />
-            <Route path="/teacher/upload-inclass" element={isTeacher ? <TeacherUpload /> : roleSelect} />
-            <Route path="/teacher/upload-extra" element={isTeacher ? <TeacherUpload isExtra /> : roleSelect} />
-            <Route path="/teacher/management" element={isTeacher ? <TeacherManagement /> : roleSelect} />
+            <Route path="/teacher" element={isTeacher ? <TeacherDashboard /> : accessRequired} />
+            <Route path="/teacher/upload-inclass" element={isTeacher ? <TeacherUpload /> : accessRequired} />
+            <Route path="/teacher/upload-extra" element={isTeacher ? <TeacherUpload isExtra /> : accessRequired} />
+            <Route path="/teacher/management" element={isTeacher ? <TeacherManagement /> : accessRequired} />
           </Routes>
         </AnimatePresence>
       </main>

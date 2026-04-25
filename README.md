@@ -8,6 +8,7 @@ PoetiCraft AI is a Vite React app for Chinese poetry analysis practice. It is de
 - Supabase Postgres + Row Level Security using one table: `CL_JIAYU_POETICRAFT`
 - Supabase email OTP for teachers with `@ri.edu.sg` email addresses
 - Vercel `/api/gemini` function for Gemini calls
+- Student access via LMS URL parameter: `/?id=${Canvas.user.loginId}`
 
 ## Setup
 
@@ -38,3 +39,13 @@ PoetiCraft AI is a Vite React app for Chinese poetry analysis practice. It is de
    ```
 
 For local testing of `/api/gemini`, use Vercel's local runtime (`vercel dev`) or deploy to Vercel, because the Gemini endpoint is a Vercel Function.
+
+## LMS Access
+
+Student links must include the Canvas login ID:
+
+```txt
+https://your-app.vercel.app/?id=${Canvas.user.loginId}
+```
+
+If `id` is missing, the app shows an Access Required screen and blocks student routes.
