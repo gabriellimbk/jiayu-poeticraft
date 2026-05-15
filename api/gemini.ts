@@ -74,7 +74,7 @@ async function generateSkillsAndExercises(
 ) {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: `
       基于以下关于诗歌《${workTitle}》的原文及相关分析内容，请提取并生成习题库内容。
 
@@ -171,7 +171,7 @@ async function getStudentFeedback(
 ) {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: `
       你是一位经验丰富、温和且专业的语文老师。请针对学生的文学分析段落进行点评。
       你的语气应当像是在课堂上或批改作文时面对面教导学生：多一些启发和点拨，少一些冷冰冰的判定。
