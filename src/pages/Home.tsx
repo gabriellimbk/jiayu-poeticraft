@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Work } from "../types";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { ChevronRight, BookOpen, AlertCircle, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { APP_TABLE, mapWork, WorkRow } from "../lib/db";
 
 export default function Home() {
+  const { search } = useLocation();
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {works.filter(w => !w.type || w.type === 'in-class').map((work) => (
-                <WorkCard key={work.id} work={work} />
+                <WorkCard key={work.id} work={work} search={search} />
               ))}
             </div>
           </section>
@@ -100,7 +101,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {works.filter(w => w.type === 'extra-curricular').map((work) => (
-                <WorkCard key={work.id} work={work} />
+                <WorkCard key={work.id} work={work} search={search} />
               ))}
               {works.filter(w => w.type === 'extra-curricular').length === 0 && (
                 <div className="col-span-full py-12 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400">
@@ -115,10 +116,10 @@ export default function Home() {
   );
 }
 
-function WorkCard({ work }: { work: Work }) {
+function WorkCard({ work, search }: { work: Work; search: string }) {
   return (
     <Link
-      to={`/practice/${work.id}`}
+      to={`/practice/${work.id}${search}`}
       className="group relative p-8 bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-xl transition-all duration-300 shadow-sm"
     >
       <div className="flex justify-between items-center">

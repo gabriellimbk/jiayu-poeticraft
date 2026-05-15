@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, us
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, GraduationCap, KeyRound, LockKeyhole, LogOut, Mail, ShieldCheck, X } from "lucide-react";
+import { BookOpen, Eye, GraduationCap, KeyRound, LockKeyhole, LogOut, Mail, ShieldCheck, X } from "lucide-react";
 import { isRiTeacherEmail, supabase } from "./lib/supabase";
 import { StudentIdentity } from "./types";
 
@@ -39,15 +39,17 @@ function Header({
   studentIdentity,
   teacherEmail,
   isTeacher,
+  isPreviewing,
   onLogout,
 }: {
   role: AppRole;
   studentIdentity: StudentIdentity;
   teacherEmail: string | null;
   isTeacher: boolean;
+  isPreviewing: boolean;
   onLogout: () => void;
 }) {
-  const homePath = role === "teacher" && isTeacher ? "/teacher" : "/";
+  const homePath = isPreviewing ? "/?preview=1" : isTeacher ? "/teacher" : "/";
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-8 shrink-0 shadow-sm">
@@ -59,19 +61,30 @@ function Header({
       </Link>
 
       <div className="flex items-center gap-4">
-        {role === "teacher" && isTeacher && (
-          <Link
-            to="/teacher"
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors"
-          >
-            教师后台
-          </Link>
+        {isTeacher && (
+          <>
+            <Link
+              to="/teacher"
+              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors"
+            >
+              教师后台
+            </Link>
+            {!isPreviewing && (
+              <Link
+                to="/?preview=1"
+                className="px-4 py-2 text-sm font-medium text-amber-700 hover:text-amber-900 transition-colors flex items-center gap-1.5"
+              >
+                <Eye className="w-4 h-4" />
+                学生预览
+              </Link>
+            )}
+          </>
         )}
 
         {role && (
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-slate-600">
-              {role === "teacher" ? teacherEmail : studentIdentity.name}
+              {isTeacher ? teacherEmail : studentIdentity.name}
             </span>
             <button
               onClick={onLogout}
@@ -84,6 +97,25 @@ function Header({
         )}
       </div>
     </header>
+  );
+}
+
+function PreviewBanner() {
+  return (
+    <div className="fixed top-16 left-0 right-0 z-40 bg-amber-50 border-b border-amber-200">
+      <div className="max-w-5xl mx-auto px-6 py-2 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs font-bold text-amber-800 uppercase tracking-widest">
+          <Eye className="w-4 h-4" />
+          教师预览模式 · 你看到的是学生界面
+        </div>
+        <Link
+          to="/teacher"
+          className="text-xs font-bold text-amber-800 hover:text-amber-900 underline underline-offset-2"
+        >
+          返回教师后台 →
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -306,7 +338,13 @@ function AppShell() {
   const [showTeacherLogin, setShowTeacherLogin] = useState(false);
 
   const isTeacher = isRiTeacherEmail(session?.user.email);
-  const hasStudentAccess = role === "student" && Boolean(studentIdentity.id);
+  const isPreviewing = isTeacher && new URLSearchParams(location.search).get("preview") === "1";
+  const teacherPreviewIdentity: StudentIdentity = {
+    id: session?.user.email || "teacher-preview",
+    name: `${session?.user.email || "教师"} (预览)`,
+  };
+  const effectiveStudentIdentity = isPreviewing ? teacherPreviewIdentity : studentIdentity;
+  const hasStudentAccess = isPreviewing || (role === "student" && Boolean(studentIdentity.id));
   const currentUrlStudentIdentity = getStudentIdentityFromSearch(location.search);
 
   useEffect(() => {
@@ -418,21 +456,23 @@ function AppShell() {
         studentIdentity={studentIdentity}
         teacherEmail={session?.user.email || null}
         isTeacher={isTeacher}
+        isPreviewing={isPreviewing}
         onLogout={handleLogout}
       />
+      {isPreviewing && <PreviewBanner />}
 
-      <main className="pt-24 pb-12 px-6 max-w-5xl mx-auto">
+      <main className={`${isPreviewing ? "pt-32" : "pt-24"} pb-12 px-6 max-w-5xl mx-auto`}>
         <AnimatePresence mode="wait">
           <Routes>
             <Route
               path="/"
-              element={role === "teacher" && isTeacher ? <Navigate to="/teacher" replace /> : hasStudentAccess ? <Home /> : accessRequired}
+              element={isTeacher && !isPreviewing ? <Navigate to="/teacher" replace /> : hasStudentAccess ? <Home /> : accessRequired}
             />
             <Route path="/practice/:workId" element={hasStudentAccess ? <PracticeCategory /> : accessRequired} />
             <Route path="/practice/:workId/:category" element={hasStudentAccess ? <PracticeSkill /> : accessRequired} />
             <Route
               path="/practice/:workId/:category/:skillId"
-              element={hasStudentAccess ? <PracticeExercise studentIdentity={studentIdentity} /> : accessRequired}
+              element={hasStudentAccess ? <PracticeExercise studentIdentity={effectiveStudentIdentity} /> : accessRequired}
             />
 
             <Route path="/teacher" element={isTeacher ? <TeacherDashboard /> : accessRequired} />

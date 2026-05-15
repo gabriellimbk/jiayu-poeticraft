@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Skill } from "../types";
 import { motion } from "motion/react";
 import { ChevronRight, ArrowLeft, Target } from "lucide-react";
@@ -8,8 +8,12 @@ import { APP_TABLE, mapSkill, SkillRow } from "../lib/db";
 
 export default function PracticeSkill() {
   const { workId, category } = useParams();
+  const { search } = useLocation();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
+  // Extra-curricular works auto-redirect /practice/:workId → /practice/:workId/综合鉴赏,
+  // so going back there would loop. Skip the intermediate page in that case.
+  const backTo = category === "综合鉴赏" ? `/${search}` : `/practice/${workId}${search}`;
 
   useEffect(() => {
     async function fetchSkills() {
@@ -49,7 +53,7 @@ export default function PracticeSkill() {
       className="space-y-8"
     >
       <div className="flex items-center gap-4">
-        <Link to={`/practice/${workId}`} className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
+        <Link to={backTo} className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="space-y-1">
@@ -74,7 +78,7 @@ export default function PracticeSkill() {
           {skills.map((skill) => (
             <Link
               key={skill.id}
-              to={`/practice/${workId}/${category}/${skill.id}`}
+              to={`/practice/${workId}/${category}/${skill.id}${search}`}
               className="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-500/5 transition-all flex items-center justify-between"
             >
               <div className="flex items-center gap-4">

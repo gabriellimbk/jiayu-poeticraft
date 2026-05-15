@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { ChevronRight, Heart, Sparkles, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -8,6 +8,7 @@ import { APP_TABLE, mapWork, WorkRow } from "../lib/db";
 export default function PracticeCategory() {
   const { workId } = useParams();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,13 +25,13 @@ export default function PracticeCategory() {
         const workData = mapWork(data as WorkRow);
         if (workData.type === 'extra-curricular') {
           // Extra-curricular works don't use category splitting
-          navigate(`/practice/${workId}/综合鉴赏`, { replace: true });
+          navigate(`/practice/${workId}/综合鉴赏${search}`, { replace: true });
         }
       }
       setLoading(false);
     }
     checkWorkType();
-  }, [workId, navigate]);
+  }, [workId, navigate, search]);
 
   if (loading) {
     return (
@@ -54,7 +55,7 @@ export default function PracticeCategory() {
       className="space-y-12"
     >
       <div className="flex items-center gap-4">
-        <Link to="/" className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
+        <Link to={`/${search}`} className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="space-y-1">
@@ -66,7 +67,7 @@ export default function PracticeCategory() {
         {categories.map((cat) => (
           <Link
             key={cat.title}
-            to={`/practice/${workId}/${cat.title}`}
+            to={`/practice/${workId}/${cat.title}${search}`}
             className={`group flex flex-col justify-between bg-white rounded-2xl border border-slate-200 p-8 shadow-sm border-t-4 ${cat.border} hover:shadow-xl transition-all duration-300`}
           >
             <div className="space-y-6">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Skill, Exercise, StudentIdentity } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Send, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
@@ -10,6 +10,7 @@ import { APP_TABLE, ExerciseRow, mapExercise, mapSkill, SkillRow } from "../lib/
 
 export default function PracticeExercise({ studentIdentity }: { studentIdentity: StudentIdentity }) {
   const { workId, skillId, category } = useParams();
+  const { search } = useLocation();
   const [skill, setSkill] = useState<Skill | null>(null);
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [studentContent, setStudentContent] = useState("");
@@ -95,7 +96,7 @@ export default function PracticeExercise({ studentIdentity }: { studentIdentity:
       className="max-w-4xl mx-auto space-y-10 pb-32"
     >
       <div className="flex items-center gap-4">
-        <Link to={`/practice/${workId}/${category}`} className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
+        <Link to={`/practice/${workId}/${category}${search}`} className="w-10 h-10 flex items-center justify-center hover:bg-white hover:shadow-md rounded-full transition-all text-slate-400">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="space-y-1">
